@@ -55,55 +55,29 @@ class webservice_restful_server extends webservice_base_server {
     }
 
     /**
-     * Get headers from Apache websever.
-     *
-     * @return array $returnheaders The headers from Apache.
-     */
-    private function get_apache_headers() {
-        $capitalizearray = array(
-            'Content-Type',
-            'Accept',
-            'Authorization',
-            'Content-Length',
-            'User-Agent',
-            'Host'
-        );
-        $headers = apache_request_headers();
-        $returnheaders = array();
-
-        foreach ($headers as $key => $value) {
-            if (in_array($key, $capitalizearray)) {
-                $header = 'HTTP_' . strtoupper($key);
-                $header = str_replace('-', '_', $header);
-                $returnheaders[$header] = $value;
-            }
-        }
-
-        return $returnheaders;
-    }
-
-    /**
      * Extract the HTTP headers out of the request.
      *
      * @param array $headers Optional array of headers, to assist with testing.
      * @return array $headers HTTP headers.
      */
     private function get_headers($headers=null) {
-        $returnheaders = array();
-
         if (!$headers) {
-            if (function_exists('apache_request_headers')) {  // Apache websever.
-                $headers = $this->get_apache_headers();
-            } else {  // Nginx webserver.
-                $headers = $_SERVER;
-            }
+            $headers = $_SERVER;
         }
-
+        $returnheaders = array();
         foreach ($headers as $key => $value) {
             if (substr($key, 0, 5) == 'HTTP_') {
                 $returnheaders[$key] = $value;
             }
         }
+
+
+// NICO
+$hdr2 = apache_request_headers();
+$returnheaders['HTTP_AUTHORIZATION'] = $hdr2['Authorization'];
+$returnheaders['HTTP_CONTENT_TYPE'] = $hdr2['Content-Type'];
+$returnheaders['HTTP_ACCEPT'] = $hdr2['Accept'];
+
 
         return $returnheaders;
     }
@@ -173,6 +147,11 @@ class webservice_restful_server extends webservice_base_server {
 
         if (isset($headers['HTTP_ACCEPT'])) {
             $responseformat = ltrim($headers['HTTP_ACCEPT'], 'application/');
+// NICO
+if (strpos($responseformat, ";") !== false) {
+        $responseformat = substr($responseformat, 0, strpos($responseformat, ";"));
+}
+
         } else {
             // Raise an error if accept header not supplied.
             $ex = new \moodle_exception('noacceptheader', 'webservice_restful', '');
@@ -199,6 +178,11 @@ class webservice_restful_server extends webservice_base_server {
             $ex = new \moodle_exception('notypeheader', 'webservice_restful', '');
             $this->send_error($ex, 400);
         }
+
+// NICO
+if (strpos($requestformat, ";") !== false) {
+	$requestformat = substr($requestformat, 0, strpos($requestformat, ";"));
+}
 
         return $requestformat;
     }
